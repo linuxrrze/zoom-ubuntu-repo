@@ -31,10 +31,10 @@ function init()
 
   echo -n "Initializing directories in ${ZOOM_CACHE}... "
   mkdir -p "${ZOOM_CACHE}"
-  chmod 750 "${ZOOM_CACHE}"
+  chmod 751 "${ZOOM_CACHE}"
 
   mkdir -p "${ZOOM_REPO}"
-  chmod 750 "${ZOOM_REPO}"
+  chmod 755 "${ZOOM_REPO}"
 
   #touch "${ZOOM_CACHE}/override"
   echo "DONE"
@@ -107,6 +107,7 @@ function build_repo()
     dpkg-scanpackages --multiversion ${ZOOM_REPO} > ${ZOOM_REPO}/Release
   fi
   gzip -9c ${ZOOM_REPO}/Release > ${ZOOM_REPO}/Packages.gz
+  chmod 644 "${ZOOM_REPO}/*"
   echo "DONE"
 }
 
