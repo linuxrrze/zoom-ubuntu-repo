@@ -93,14 +93,14 @@ function download_latest_zoom()
     echo "Found new version (${LATEST_ZOOM_VER})."
     echo -n "Downloading... "
     wget --quiet -O "${TARGET_FILE}" "${ZOOM_CLIENT_URL}"
-    gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --verify "${ZOOM_REPO}/zoom_amd64_${LATEST_ZOOM_VER}.deb" || exit 2
     echo "DONE"
+    gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --verify "${ZOOM_REPO}/zoom_amd64_${LATEST_ZOOM_VER}.deb" || exit 2
   fi
 }
 
 function build_repo()
 {
-  echo -n "Updating repo... "
+  echo "Updating repo... "
   if [ -f "${ZOOM_CACHE}/override" ]; then
     dpkg-scanpackages --multiversion ${ZOOM_REPO}/ ${ZOOM_CACHE}/override > ${ZOOM_REPO}/Release
   else
