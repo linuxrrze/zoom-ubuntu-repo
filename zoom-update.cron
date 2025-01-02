@@ -65,8 +65,10 @@ function update_latest_zoom_version()
 
 function get_pubkey()
 {
-  echo -n "Updating GPG key... "
+  echo -n "Fetching new GPG key... "
   wget -q -O "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_PUBKEY_URL}" 2>&1
+  echo "DONE"
+
   if [ -r "${ZOOM_CACHE}/zoom.key" ]; then
     if ! cmp -s "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_CACHE}/zoom.key"; then
       echo "Keys ${ZOOM_CACHE}/{zoom.key|zoom.key.new} differ - aborting"
