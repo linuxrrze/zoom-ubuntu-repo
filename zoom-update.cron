@@ -71,8 +71,6 @@ function get_pubkey()
     if ! cmp -s "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_CACHE}/zoom.key"; then
       echo "Keys ${ZOOM_CACHE}/{zoom.key|zoom.key.new} differ - aborting"
       exit 1
-    else
-      echo "GPG key unchanged"
     fi
   else
     echo "Initially importing GPG key"
