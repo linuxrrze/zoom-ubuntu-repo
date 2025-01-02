@@ -17,8 +17,9 @@ else
 fi
 LATEST_ZOOM_VER=$(get_latest_zoom)
 
-
-if [ ! -f "$VERSION_FILE" ] || ! grep -q "^$LATEST_ZOOM_VER\$" "$VERSION_FILE" || [ "x$LATEST_ZOOM_VER" == "x" ]; then
+if [  "x$LATEST_ZOOM_VER" == "x" ]; then
+        echo "ERROR: Unable to determine zoom version"
+elif [ ! -f "$VERSION_FILE" ] || ! grep -q "^$LATEST_ZOOM_VER\$" "$VERSION_FILE" || [ "x$LATEST_ZOOM_VER" == "x" ]; then
 	echo "New version found: $LATEST_ZOOM_VER"
 	echo "$LATEST_ZOOM_VER" >> "$VERSION_FILE"
 	wget --quiet -O "${ZOOM_REPO}/zoom_amd64_${LATEST_ZOOM_VER}.deb" "${ZOOM_CLIENT_URL}"
