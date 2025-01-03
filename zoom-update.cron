@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# Set base dir
-ZOOM_CACHE="/var/lib/zoom"
-if [ "$UID" != "0" ]; then
-  ZOOM_CACHE="${HOME}/zoom"
-  echo "WARNING: Not running as root. Files are placed in ${ZOOM_CACHE} for development."
+if [ "$UID" = "0" ]; then
+  echo "WARNING: Running as root is not recommended!"
 fi
+
+[ -f /etc/default/zoom-update ] && . /etc/default/zoom-update
+
+# Set base dir
+ZOOM_CACHE="${ZOOM_CACHE:-/var/lib/zoom}"
 
 ZOOM_REPO="${ZOOM_CACHE}/repo"
 ZOOM_GPG_HOME="${ZOOM_CACHE}/.gnupg"
@@ -29,16 +31,23 @@ function init()
 {
   set -e
 
-  echo -n "Initializing directories in ${ZOOM_CACHE}... "
-  mkdir -p "${ZOOM_CACHE}"
-  chmod 751 "${ZOOM_CACHE}"
+  if [ -d "${ZOOM_CACHE}" ]; then
+    ZOOM_CACHE_UID=$(stat -c "%u" "${ZOOM_CACHE}")
+    if [ "$UID" != "$ZOOM_CACHE_UID" ]; then
+      echo "User ID ($UID) and directory owner ($ZOOM_CACHE_UID) do not match - aborting"
+      exit 1
+    fi
+  else
+    echo -n "Initializing directories in ${ZOOM_CACHE}... "
+    mkdir -p "${ZOOM_CACHE}"
+    chmod 751 "${ZOOM_CACHE}"
 
-  mkdir -p "${ZOOM_REPO}"
-  chmod 755 "${ZOOM_REPO}"
+    mkdir -p "${ZOOM_REPO}"
+    chmod 755 "${ZOOM_REPO}"
 
-  #touch "${ZOOM_CACHE}/override"
-  echo "DONE"
-
+    #touch "${ZOOM_CACHE}/override"
+    echo "DONE"
+  fi
   set +e
 }
 
@@ -118,7 +127,7 @@ function build_repo()
 # CAREFUL!
 #purge # use to reset on every start for development
 
-[ -d "${ZOOM_CACHE}" ] || init
+init
 get_pubkey
 update_latest_zoom_version
 download_latest_zoom && build_repo
