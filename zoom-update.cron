@@ -117,7 +117,7 @@ function build_repo()
     dpkg-scanpackages --multiversion ${ZOOM_REPO} > ${ZOOM_REPO}/Release
   fi
   gzip -9c ${ZOOM_REPO}/Release > ${ZOOM_REPO}/Packages.gz
-  chmod 644 "${ZOOM_REPO}/*"
+  chmod 644 "${ZOOM_REPO}"/*
   echo "DONE"
 }
 
