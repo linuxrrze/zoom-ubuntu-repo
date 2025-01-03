@@ -7,7 +7,7 @@ fi
 [ -f /etc/default/zoom-update ] && . /etc/default/zoom-update
 
 # Set base dir
-ZOOM_CACHE="${ZOOM_CACHE:-/var/lib/zoom}"
+ZOOM_CACHE="${ZOOM_CACHE:-${HOME}/zoom}"
 
 ZOOM_REPO="${ZOOM_CACHE}/repo"
 ZOOM_GPG_HOME="${ZOOM_CACHE}/.gnupg"
@@ -46,9 +46,15 @@ function init()
     mkdir -p "${ZOOM_REPO}"
     chmod 755 "${ZOOM_REPO}"
 
-    #touch "${ZOOM_CACHE}/override"
     echo "DONE"
   fi
+
+  # ensure correct GPG home permissions to avoid warning
+  if [ -d "${ZOOM_GPG_HOME}" ]; then
+    find "${ZOOM_GPG_HOME}" -type f -exec chmod 600 {} \; # Set 600 for files
+    find "${ZOOM_GPG_HOME}" -type d -exec chmod 700 {} \; # Set 700 for directories
+  fi
+
   set +e
 }
 
