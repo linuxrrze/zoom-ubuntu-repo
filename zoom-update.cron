@@ -1,52 +1,124 @@
 #!/bin/bash
 
-ZOOM_CACHE=/var/lib/zoom
-ZOOM_REPO=${ZOOM_CACHE}/repo
-ZOOM_KEYRING=${ZOOM_CACHE}/gpg.keyring
-VERSION_FILE=${ZOOM_CACHE}/zoom_deb.version
+# Set base dir
+ZOOM_CACHE="/var/lib/zoom"
+if [ "$UID" != "0" ]; then
+  ZOOM_CACHE="${HOME}/zoom"
+  echo "WARNING: Not running as root. Files are placed in ${ZOOM_CACHE} for development."
+fi
+
+ZOOM_REPO="${ZOOM_CACHE}/repo"
+ZOOM_GPG_HOME="${ZOOM_CACHE}/.gnupg"
+VERSION_FILE="${ZOOM_CACHE}/zoom_deb.version"
 
 # s. https://zoom.us/download?os=linux
 ZOOM_CLIENT_URL="https://zoom.us/client/latest/zoom_amd64.deb"
 ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=5-12-6"
 
 
-function get_latest_zoom()
+########################################################################################################################
+# FUNCTIONS
+########################################################################################################################
+
+function purge()
 {
-	wget --spider "${ZOOM_CLIENT_URL}" 2>&1 | grep ^Location: | sed -e 's/.*prod\/\(.*\)\/.*/\1/'
+  rm -rf "${ZOOM_CACHE}"
+}
+
+function init()
+{
+  set -e
+
+  echo -n "Initializing directories in ${ZOOM_CACHE}... "
+  mkdir -p "${ZOOM_CACHE}"
+  chmod 751 "${ZOOM_CACHE}"
+
+  mkdir -p "${ZOOM_REPO}"
+  chmod 755 "${ZOOM_REPO}"
+
+  #touch "${ZOOM_CACHE}/override"
+  echo "DONE"
+
+  set +e
+}
+
+function update_latest_zoom_version()
+{
+  echo -n "Updating latest version... "
+  if [ -f "$VERSION_FILE" ]; then
+    OLD_ZOOM_VER=$(tail -n 1 "$VERSION_FILE")
+  else
+    OLD_ZOOM_VER="0.0"
+  fi
+  LATEST_ZOOM_VER=$(wget --spider "${ZOOM_CLIENT_URL}" 2>&1 | grep ^Location: | sed -e 's/.*prod\/\(.*\)\/.*/\1/')
+
+  if [ "x$LATEST_ZOOM_VER" == "x" ]; then
+    echo "ERROR: Unable to determine zoom version"
+    exit 3
+  elif [ ! -f "$VERSION_FILE" ] || ! grep -q "^$LATEST_ZOOM_VER\$" "$VERSION_FILE"; then
+    echo "New version found: $LATEST_ZOOM_VER"
+    echo "$LATEST_ZOOM_VER" >> "$VERSION_FILE"
+  else
+    echo "Version unchanged"
+  fi
 }
 
 function get_pubkey()
 {
-	wget -q -O "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_PUBKEY_URL}" 2>&1
-	if [ -r "${ZOOM_CACHE}/zoom.key" ]; then
-		if ! cmp -s "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_CACHE}/zoom.key"; then
-			echo "Keys ${ZOOM_CACHE}/{zoom.key|zoom.key.new} differ - aborting"
-			exit 1
-		fi
-	else
-		echo "Initially importing GPG key"
-		gpg --no-default-keyring --keyring "${ZOOM_KEYRING}" --homedir "${ZOOM_CACHE}" --import "${ZOOM_CACHE}/zoom.key.new"
-		mv "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_CACHE}/zoom.key"
-	fi
+  echo -n "Fetching new GPG key... "
+  wget -q -O "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_PUBKEY_URL}" 2>&1
+  echo "DONE"
+
+  if [ -r "${ZOOM_CACHE}/zoom.key" ]; then
+    if ! cmp -s "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_CACHE}/zoom.key"; then
+      echo "Keys ${ZOOM_CACHE}/{zoom.key|zoom.key.new} differ - aborting"
+      exit 1
+    fi
+  else
+    echo "Initially importing GPG key"
+    gpg --quiet --homedir "${ZOOM_GPG_HOME}" --import "${ZOOM_CACHE}/zoom.key.new"
+    mv "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_CACHE}/zoom.key"
+  fi
 }
 
+function download_latest_zoom()
+{
+  echo -n "Checking for downloads... "
+  LATEST_ZOOM_VER=$(tail -n 1 "$VERSION_FILE")
+  TARGET_FILE="${ZOOM_REPO}/zoom_amd64_${LATEST_ZOOM_VER}.deb"
+  if [ -f "${TARGET_FILE}" ]; then
+    echo "Already up-to-date (${TARGET_FILE})"
+    exit 1 # indicates no error - but also nothing was downloaded
+  else
+    echo "Found new version (${LATEST_ZOOM_VER})."
+    echo -n "Downloading... "
+    wget --quiet -O "${TARGET_FILE}" "${ZOOM_CLIENT_URL}"
+    echo "DONE"
+    gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --verify "${ZOOM_REPO}/zoom_amd64_${LATEST_ZOOM_VER}.deb" || exit 2
+  fi
+}
+
+function build_repo()
+{
+  echo "Updating repo... "
+  if [ -f "${ZOOM_CACHE}/override" ]; then
+    dpkg-scanpackages --multiversion ${ZOOM_REPO}/ ${ZOOM_CACHE}/override > ${ZOOM_REPO}/Release
+  else
+    dpkg-scanpackages --multiversion ${ZOOM_REPO} > ${ZOOM_REPO}/Release
+  fi
+  gzip -9c ${ZOOM_REPO}/Release > ${ZOOM_REPO}/Packages.gz
+  chmod 644 "${ZOOM_REPO}/*"
+  echo "DONE"
+}
+
+########################################################################################################################
+# DO THE THING ...
+########################################################################################################################
+
+# CAREFUL!
+#purge # use to reset on every start for development
+
+[ -d "${ZOOM_CACHE}" ] || init
 get_pubkey
-
-if [ -f "$VERSION_FILE" ]; then
-	OLD_ZOOM_VER=$(tail -n 1 "$VERSION_FILE")
-else
-	OLD_ZOOM_VER="0.0"
-fi
-LATEST_ZOOM_VER=$(get_latest_zoom)
-
-if [ "x$LATEST_ZOOM_VER" == "x" ]; then
-	echo "ERROR: Unable to determine zoom version"
-elif [ ! -f "$VERSION_FILE" ] || ! grep -q "^$LATEST_ZOOM_VER\$" "$VERSION_FILE"; then
-	echo "New version found: $LATEST_ZOOM_VER"
-	echo "$LATEST_ZOOM_VER" >> "$VERSION_FILE"
-	wget --quiet -O "${ZOOM_REPO}/zoom_amd64_${LATEST_ZOOM_VER}.deb" "${ZOOM_CLIENT_URL}"
-	gpg --no-default-keyring --keyring "${ZOOM_KEYRING}" --homedir "${ZOOM_CACHE}" --verify "${ZOOM_REPO}/zoom_amd64_${LATEST_ZOOM_VER}.deb" || exit 2
-	dpkg-scanpackages --multiversion ${ZOOM_REPO}/ ${ZOOM_CACHE}/override > ${ZOOM_REPO}/Release
-	dpkg-scanpackages --multiversion ${ZOOM_REPO} |  gzip -9c > ${ZOOM_REPO}/Packages.gz
-fi
-
+update_latest_zoom_version
+download_latest_zoom && build_repo
