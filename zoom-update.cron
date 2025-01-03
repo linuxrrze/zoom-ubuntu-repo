@@ -104,7 +104,7 @@ function download_latest_zoom()
     echo -n "Downloading... "
     wget --quiet -O "${TARGET_FILE}" "${ZOOM_CLIENT_URL}"
     echo "DONE"
-    gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --verify "${ZOOM_REPO}/zoom_amd64_${LATEST_ZOOM_VER}.deb" || exit 2
+    gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --verify "${TARGET_FILE}" || exit 2
   fi
 }
 
