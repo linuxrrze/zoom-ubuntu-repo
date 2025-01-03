@@ -17,6 +17,7 @@ VERSION_FILE="${ZOOM_CACHE}/zoom_deb.version"
 ZOOM_CLIENT_URL="https://zoom.us/client/latest/zoom_amd64.deb"
 ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=5-12-6"
 
+QUIET=true
 
 ########################################################################################################################
 # FUNCTIONS
@@ -53,7 +54,7 @@ function init()
 
 function update_latest_zoom_version()
 {
-  echo -n "Updating latest version... "
+  $QUIET || echo -n "Updating latest version... "
   if [ -f "$VERSION_FILE" ]; then
     OLD_ZOOM_VER=$(tail -n 1 "$VERSION_FILE")
   else
@@ -74,9 +75,9 @@ function update_latest_zoom_version()
 
 function get_pubkey()
 {
-  echo -n "Fetching new GPG key... "
+  $QUIET || echo -n "Fetching new GPG key... "
   wget -q -O "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_PUBKEY_URL}" 2>&1
-  echo "DONE"
+  $QUIET || echo "DONE"
 
   if [ -r "${ZOOM_CACHE}/zoom.key" ]; then
     if ! cmp -s "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_CACHE}/zoom.key"; then
@@ -92,11 +93,11 @@ function get_pubkey()
 
 function download_latest_zoom()
 {
-  echo -n "Checking for downloads... "
+  $QUIET || echo -n "Checking for downloads... "
   LATEST_ZOOM_VER=$(tail -n 1 "$VERSION_FILE")
   TARGET_FILE="${ZOOM_REPO}/zoom_${LATEST_ZOOM_VER}_amd64.deb"
   if [ -f "${TARGET_FILE}" ]; then
-    echo "Already up-to-date (${TARGET_FILE})"
+    $QUIET || echo "Already up-to-date (${TARGET_FILE})"
     exit 1 # indicates no error - but also nothing was downloaded
   else
     echo "Found new version (${LATEST_ZOOM_VER})."
