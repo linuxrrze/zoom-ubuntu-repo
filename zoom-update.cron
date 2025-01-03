@@ -69,7 +69,7 @@ function update_latest_zoom_version()
     echo "New version found: $LATEST_ZOOM_VER"
     echo "$LATEST_ZOOM_VER" >> "$VERSION_FILE"
   else
-    echo "Version unchanged"
+    $QUIET || echo "Version unchanged"
   fi
 }
 
