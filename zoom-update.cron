@@ -15,9 +15,11 @@ VERSION_FILE="${ZOOM_CACHE}/zoom_deb.version"
 
 # s. https://zoom.us/download?os=linux
 ZOOM_CLIENT_URL="https://zoom.us/client/latest/zoom_amd64.deb"
-ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=5-12-6"
+#ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=5-12-6"
+ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=6-3-10"
 
 QUIET=true
+#QUIET=false
 
 ########################################################################################################################
 # FUNCTIONS
