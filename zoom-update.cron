@@ -15,9 +15,11 @@ VERSION_FILE="${ZOOM_CACHE}/zoom_deb.version"
 
 # s. https://zoom.us/download?os=linux
 ZOOM_CLIENT_URL="https://zoom.us/client/latest/zoom_amd64.deb"
-ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=5-12-6"
+#ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=5-12-6"
+ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=6-3-10"
 
 QUIET=true
+#QUIET=false
 
 ########################################################################################################################
 # FUNCTIONS
@@ -110,7 +112,11 @@ function download_latest_zoom()
     echo -n "Downloading... "
     wget --quiet -O "${TARGET_FILE}" "${ZOOM_CLIENT_URL}"
     echo "DONE"
-    gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --verify "${TARGET_FILE}" || exit 2
+    if ! gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --verify "${TARGET_FILE}"; then
+      echo "GPG key check failed for ${TARGET_FILE}"
+      exit 2
+    fi
+
   fi
 }
 
