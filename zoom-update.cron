@@ -15,7 +15,7 @@ VERSION_FILE="${ZOOM_CACHE}/zoom_deb.version"
 
 # s. https://zoom.us/download?os=linux
 ZOOM_CLIENT_URL="https://zoom.us/client/latest/zoom_amd64.deb"
-ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey?version=5-12-6"
+ZOOM_PUBKEY_URL="https://zoom.us/linux/download/pubkey"
 
 QUIET=true
 
@@ -46,6 +46,7 @@ function init()
     mkdir -p "${ZOOM_REPO}"
     chmod 755 "${ZOOM_REPO}"
 
+    echo "zoom optional default" > "${ZOOM_CACHE}/override"
     echo "DONE"
   fi
 
@@ -88,6 +89,8 @@ function get_pubkey()
   if [ -r "${ZOOM_CACHE}/zoom.key" ]; then
     if ! cmp -s "${ZOOM_CACHE}/zoom.key.new" "${ZOOM_CACHE}/zoom.key"; then
       echo "Keys ${ZOOM_CACHE}/{zoom.key|zoom.key.new} differ - aborting"
+      echo "Check keys and if valid remove old one and re-run:"
+      echo "rm ${ZOOM_CACHE}/zoom.key"
       exit 1
     fi
   else
@@ -117,15 +120,13 @@ function download_latest_zoom()
 function build_repo()
 {
   echo "Updating repo... "
-  pushd "${ZOOM_REPO}"
   if [ -f "${ZOOM_CACHE}/override" ]; then
-    dpkg-scanpackages --multiversion . ${ZOOM_CACHE}/override > Release
+    dpkg-scanpackages --multiversion ${ZOOM_REPO}/ ${ZOOM_CACHE}/override > ${ZOOM_REPO}/Release
   else
-    dpkg-scanpackages --multiversion . > Release
+    dpkg-scanpackages --multiversion ${ZOOM_REPO} > ${ZOOM_REPO}/Release
   fi
-  gzip -9c ./Release > Packages.gz
-  chmod 644 *
-  popd
+  gzip -9c ${ZOOM_REPO}/Release > ${ZOOM_REPO}/Packages.gz
+  chmod 644 "${ZOOM_REPO}"/*
   echo "DONE"
 }
 
