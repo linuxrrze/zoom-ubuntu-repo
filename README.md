@@ -1,50 +1,101 @@
 # zoom-ubuntu-repo
-Scripts to build a Debian/Ubuntu compatible repository from Zoom's published .deb files
+An unofficial APT repository for the Zoom desktop client on Debian/Ubuntu, plus scripts to run your own.
 
-This is hardcoded for zoom amd64 builds but can easily be modified for i386 if you want it.
+The repository indices are built by GitHub Actions and published on GitHub Pages. The .deb files are **not**
+copied: apt downloads them directly from Zoom's CDN (`cdn.zoom.us`). Only amd64 is supported, Zoom publishes
+no Linux .deb packages for other architectures.
 
-# Using the hosted repository
+# Installation
 
-The repository indices are built by GitHub Actions and published on GitHub Pages.
-The .deb files are **not** copied: apt downloads them directly from `cdn.zoom.us`.
-This works with apt's `mirror+` method (apt >= 1.6, i.e. Ubuntu 18.04 / Debian 10 or newer):
-`mirrors.txt` sends requests for index files to GitHub Pages and requests for .deb files to Zoom's CDN.
-apt still checks every downloaded .deb against the SHA256 in the signed index.
+Requires apt 1.6 or newer (Ubuntu 18.04 / Debian 10 or later) on amd64.
 
 ```
-linux # wget -O /usr/share/keyrings/zoom-repo.asc https://linuxrrze.github.io/zoom-ubuntu-repo/zoom-repo.asc
-linux # cp zoom-repo-example.list /etc/apt/sources.list.d/zoom.list
-linux # apt update && apt install zoom
+sudo install -d -m 0755 /etc/apt/keyrings
+sudo wget -O /etc/apt/keyrings/zoom-repo.asc https://linuxrrze.github.io/zoom-ubuntu-repo/zoom-repo.asc
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/zoom-repo.asc] mirror+https://linuxrrze.github.io/zoom-ubuntu-repo/mirrors.txt stable main" \
+    | sudo tee /etc/apt/sources.list.d/zoom.list
+sudo apt update
+sudo apt install zoom
 ```
 
-The repository started with the 10 newest Zoom versions; every new Zoom release is added
-and old ones stay available, e.g. `apt install zoom=7.0.5.3034`.
+Check the repository key before trusting it: `gpg --show-keys /etc/apt/keyrings/zoom-repo.asc`
+(on Ubuntu 18.04: `gpg --with-fingerprint /etc/apt/keyrings/zoom-repo.asc`) must show the fingerprint
+`11C834440F15B1AFF6567534A6FEE25BF439A5B9`.
 
-## How the hosted repository is built
+If Zoom was installed manually from a downloaded .deb before, `apt upgrade` now keeps it up to date.
+
+## Older versions
+
+The repository started with the 10 newest Zoom versions; every new release is added and old ones stay available:
+
+```
+apt list -a zoom                      # show all available versions
+sudo apt install zoom=7.0.5.3034      # install a specific version
+sudo apt-mark hold zoom               # keep it from being upgraded (undo with apt-mark unhold)
+```
+
+## Removal
+
+```
+sudo apt remove zoom
+sudo rm /etc/apt/sources.list.d/zoom.list /etc/apt/keyrings/zoom-repo.asc
+sudo apt update
+```
+
+# How it works
+
+* The `deb` line points apt to `mirrors.txt`, a list for apt's `mirror+` method: index files are fetched from
+  GitHub Pages (`type:index`), .deb files from `https://cdn.zoom.us/` (`type:deb`).
+* The index (`dists/stable/...`) is signed with the repository key and lists the SHA256 of every package, so apt
+  rejects any .deb from the CDN that differs from the one verified when the version was added.
+* Before a version is added, its .deb is downloaded once and checked against Zoom's own signature, including the
+  package contents. The .deb itself isn't stored, only its index entry.
+
+# Maintaining the repository
 
 * `versions.txt` lists all known Zoom versions. Only versions with a `stanzas/<version>.control` file
   (their `Packages` entry) are published.
-  `scripts/make-stanza.sh <version>` downloads the .deb to a temporary directory, verifies Zoom's signature and the package contents against it
-  (keys in `keys/zoom/`) and writes the stanza with `Filename: prod/<version>/zoom_amd64.deb`.
+* `scripts/make-stanza.sh <version>` downloads the .deb to a temporary directory, verifies it with
+  `scripts/verify-deb.sh` against Zoom's keys in `keys/zoom/` and writes the stanza with
+  `Filename: prod/<version>/zoom_amd64.deb`.
 * `scripts/build-index.sh` builds `dists/stable/...`, signs `Release` and writes `mirrors.txt`.
-* `.github/workflows/update.yml` runs daily: `scripts/add-new-versions.sh` adds Zoom's latest version and all
-  releases found via Flathub/AUR that are newer than the oldest published version, then the indices are published.
-  A version is only recorded in `versions.txt` once it passed verification, so failures are retried every day.
-  The run fails if Zoom's latest version can't be verified (e.g. after a signing key change: add the new key to
-  `keys/zoom/`) or zoom.us is unreachable; other failures show up as warnings. Versions that can never be verified
-  belong in `versions-skipped.txt`. After 50 days without a new version the workflow pushes an empty keepalive
-  commit, because GitHub disables scheduled workflows after 60 days without repository activity.
+* `.github/workflows/update.yml` runs daily (and on pushes): `scripts/add-new-versions.sh` adds Zoom's latest
+  version and all releases found via Flathub/AUR that are newer than the oldest published version, then the
+  indices are published. A version is only recorded in `versions.txt` once it passed verification, so failures
+  are retried every day.
+* The run fails if Zoom's latest version can't be verified or zoom.us is unreachable; other failures show up as
+  warnings. After a Zoom signing key change, add the new public key to `keys/zoom/` (Zoom serves older keys at
+  `https://zoom.us/linux/download/pubkey?version=<x-y-z>`; check the fingerprint against Zoom's announcement).
+  Versions that can never be verified belong in `versions-skipped.txt`.
+* After 50 days without a new version the workflow pushes an empty keepalive commit, because GitHub disables
+  scheduled workflows after 60 days without repository activity.
 * To publish an older version, run `scripts/make-stanza.sh <version>` and commit the new stanza.
-* Zoom only reveals its latest version. `scripts/known-versions.sh --missing` lists releases that are
-  missing from `versions.txt`, based on the package history of Flathub and the AUR.
+  Zoom only reveals its latest version; `scripts/known-versions.sh --missing` lists releases missing from
+  `versions.txt`, based on the package history of Flathub and the AUR.
 
-Setting up a fork: enable GitHub Pages with source "GitHub Actions" and store an armored, passphrase-less
-signing key as secret `REPO_GPG_PRIVATE_KEY`
-(`gpg --quick-gen-key "zoom-ubuntu-repo" ed25519 sign never`, then `gpg --armor --export-secret-keys <id>`).
+## Setting up your own copy (fork)
 
-# Self-hosted usage
+1. Fork the repository and enable GitHub Pages: Settings → Pages → Source: **GitHub Actions**.
+2. Create a signing key without passphrase, in a temporary GnuPG home outside your checkout:
+   ```
+   export GNUPGHOME=$(mktemp -d)
+   gpg --batch --passphrase '' --quick-gen-key "Zoom apt repository <you@example.org>" ed25519 sign 5y
+   gpg --armor --export-secret-keys > "$GNUPGHOME/private.asc"
+   ```
+3. Store the content of `$GNUPGHOME/private.asc` as Actions secret `REPO_GPG_PRIVATE_KEY`
+   (Settings → Secrets and variables → Actions). Keep an offline backup, then `rm -rf "$GNUPGHOME"`.
+4. Run the "Update repository" workflow (Actions tab). It publishes the indices and the public key
+   (`zoom-repo.asc`) to `https://<user>.github.io/<repository>/`.
+5. Replace `linuxrrze.github.io/zoom-ubuntu-repo` and the key fingerprint in this README and in
+   `zoom-repo-example.list` with your own.
 
-Adapt the paths in zoom-update.cron for your needs and add it to your cron jobs:
+The signing key of this repository expires on 2031-10-18. Before that, extend it (`gpg --quick-set-expire`),
+update the secret and let users download `zoom-repo.asc` again.
+
+# Self-hosted repository
+
+To serve the .deb files from your own web server instead, adapt the paths in `zoom-update.cron`
+(or set `ZOOM_CACHE` in `/etc/default/zoom-update`) and add it to your cron jobs:
 
 ```
 linux # cp zoom-update.cron /usr/local/bin/zoom-update.cron
