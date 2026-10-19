@@ -1,0 +1,71 @@
+name: Update repository
+
+# Adds the latest Zoom version (if new), then rebuilds, signs and publishes
+# the APT indices to GitHub Pages. The .deb files themselves stay on
+# cdn.zoom.us; clients are sent there by mirrors.txt.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: ['versions.txt', 'stanzas/**', 'scripts/**', '.github/workflows/update.yml']
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: repo-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add latest Zoom version
+        run: |
+          version=$(scripts/latest-version.sh)
+          echo "Latest zoom version is $version"
+          if [ -f "stanzas/${version}.control" ]; then
+            echo "Already in repository"
+            exit 0
+          fi
+          grep -qx "$version" versions.txt || echo "$version" >> versions.txt
+          scripts/make-stanza.sh "$version"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add versions.txt stanzas/
+          git commit -m "Add zoom $version"
+          git push
+
+      - name: Import repository signing key
+        env:
+          REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "$REPO_GPG_PRIVATE_KEY" ]; then
+            echo "::error::Secret REPO_GPG_PRIVATE_KEY is not set"
+            exit 1
+          fi
+          echo "$REPO_GPG_PRIVATE_KEY" | gpg --batch --import
+          echo "KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')" >> "$GITHUB_ENV"
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build indices
+        run: scripts/build-index.sh public "${{ steps.pages.outputs.base_url }}/" "$KEY_ID"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

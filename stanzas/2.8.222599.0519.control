@@ -1,0 +1,17 @@
+Package: zoom
+Version: 2.8.222599.0519
+Architecture: amd64
+Maintainer: Zoom Linux Team <linux-dev@zoom.us>
+Installed-Size: 240467
+Depends: libglib2.0-0, libxcb-shape0, libxcb-shm0, libxcb-xfixes0, libxcb-randr0, libxcb-image0, libfontconfig1, libgl1-mesa-glx, libegl1-mesa, libxi6, libsm6, libxrender1, libpulse0, libxcomposite1, libxslt1.1, libsqlite3-0, libxcb-keysyms1, libxcb-xtest0, libdbus-1-3, libxtst6, ibus
+Filename: prod/2.8.222599.0519/zoom_amd64.deb
+Size: 66321120
+MD5sum: f638bfa9563658b1f44399f853684db3
+SHA1: 9671c900dc598ef03a9d9c3efb36837d820d078e
+SHA256: 9b2556e2657ac1fa968a4a43258976d299e343077754b66c809f7751bed30437
+Section: default
+Priority: optional
+Homepage: https://www.zoom.us
+Description: Zoom, #1 Video Conferencing and Web Conferencing Service \nZoom, the cloud meeting company, unifies cloud video conferencing, simple online meetings, and group messaging into one easy-to-use platform. Our solution offers the best video, audio, and screen-sharing experience across Zoom Rooms, Windows, Mac, Linux, iOS, Android, and H.323/SIP room systems.
+License: see https://www.zoom.us/
+Vendor: Zoom Video Communications, Inc.

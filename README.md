@@ -3,7 +3,37 @@ Scripts to build a Debian/Ubuntu compatible repository from Zoom's published .de
 
 This is hardcoded for zoom amd64 builds but can easily be modified for i386 if you want it.
 
-# Simple usage
+# Using the hosted repository
+
+The repository indices are built by GitHub Actions and published on GitHub Pages.
+The .deb files are **not** copied: apt downloads them directly from `cdn.zoom.us`.
+This works with apt's `mirror+` method (apt >= 1.6, i.e. Ubuntu 18.04 / Debian 10 or newer):
+`mirrors.txt` sends requests for index files to GitHub Pages and requests for .deb files to Zoom's CDN.
+apt still checks every downloaded .deb against the SHA256 in the signed index.
+
+```
+linux # wget -O /usr/share/keyrings/zoom-repo.asc https://linuxrrze.github.io/zoom-ubuntu-repo/zoom-repo.asc
+linux # cp zoom-repo-example.list /etc/apt/sources.list.d/zoom.list
+linux # apt update && apt install zoom
+```
+
+All known versions stay available, e.g. `apt install zoom=6.3.0.5527`.
+
+## How the hosted repository is built
+
+* `versions.txt` lists all Zoom versions, `stanzas/<version>.control` holds the `Packages` entry of each one.
+  `scripts/make-stanza.sh <version>` downloads the .deb to a temporary directory, verifies Zoom's signature
+  (keys in `keys/zoom/`) and writes the stanza with `Filename: prod/<version>/zoom_amd64.deb`.
+* `scripts/build-index.sh` builds `dists/stable/...`, signs `Release` and writes `mirrors.txt`.
+* `.github/workflows/update.yml` runs daily: it adds the latest Zoom version (if new) and publishes the indices.
+* `.github/workflows/backfill.yml` (manual) builds missing stanzas for everything in `versions.txt`.
+
+Setting up a fork: enable GitHub Pages with source "GitHub Actions" and store an armored, passphrase-less
+signing key as secret `REPO_GPG_PRIVATE_KEY`
+(`gpg --quick-gen-key "zoom-ubuntu-repo" ed25519 sign never`, then `gpg --armor --export-secret-keys <id>`).
+Note that GitHub disables scheduled workflows after 60 days without repository activity.
+
+# Self-hosted usage
 
 Adapt the paths in zoom-update.cron for your needs and add it to your cron jobs:
 
