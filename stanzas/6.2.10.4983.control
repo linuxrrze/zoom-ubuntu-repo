@@ -1,0 +1,23 @@
+Package: zoom
+Version: 6.2.10.4983
+Architecture: amd64
+Maintainer: Zoom Linux Team <https://support.zoom.us>
+Installed-Size: 705519
+Depends: libglib2.0-0, libxcb-keysyms1, libxcb-xinerama0, libdbus-1-3, libxcb-shape0, libpulse0, libxcb-shm0, libxcb-xfixes0, libxcb-randr0, libxcb-image0, libfontconfig1, libxi6, libsm6, libxrender1, libxcomposite1, libxslt1.1, libsqlite3-0, libxcb-xtest0, libxtst6, ibus, libxkbcommon-x11-0, desktop-file-utils, libgbm1, libdrm2, libxcb-cursor0, libxcb-icccm4, libatomic1, libfreetype6 (>= 2.6), libgbm1 (>= 17.1.0~rc2)
+Recommends: libegl1-mesa, libgl1-mesa-glx
+Filename: prod/6.2.10.4983/zoom_amd64.deb
+Size: 209320638
+MD5sum: ba056d5d96ec032b3e01c2ded345e333
+SHA1: 77bc02ac2c3a916550de1b1a026574d587837e25
+SHA256: 8dc053d2d0913773d20819ece09dc197fa24a07929065685f47f77d21a5d58b4
+Section: default
+Priority: optional
+Homepage: https://www.zoom.us
+Description: Zoom Cloud Meetings
+ Zoom brings people together to connect and get more done in a frictionless, secure video environment. Our easy, reliable, and innovative video-first solutions provide video meetings and chat, with additional options for webinars and phone service.
+ .
+ Zoom is the leading unified communications platform and helps individuals, schools, healthcare professionals and enterprises stay connected. Visit blog.zoom.us and follow @zoom_us.
+ .
+ By installing this app, you agree to our Terms of Service (https://zoom.us/terms) and Privacy Statement (https://zoom.us/privacy).
+License: see https://www.zoom.us/
+Vendor: Zoom Video Communications, Inc.

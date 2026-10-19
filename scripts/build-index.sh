@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the published part of the repository (indices, mirror list, key)
-# from the stanzas of all versions listed in versions.txt.
+# from the stanzas in stanzas/, ordered as in versions.txt.
 #
 # Usage: scripts/build-index.sh <output dir> <base url> [gpg key id]
 #
@@ -19,18 +19,14 @@ bin="${dist}/main/binary-amd64"
 rm -rf "${out}"
 mkdir -p "${bin}"
 
-missing=0
 while read -r version; do
     [ -n "$version" ] || continue
     stanza="${base_dir}/stanzas/${version}.control"
     if [ -f "$stanza" ]; then
         cat "$stanza"
         echo
-    else
-        missing=$((missing + 1))
     fi
 done < "${base_dir}/versions.txt" > "${bin}/Packages"
-[ "$missing" = 0 ] || echo "Note: ${missing} versions in versions.txt have no stanza yet" >&2
 gzip -9nc "${bin}/Packages" > "${bin}/Packages.gz"
 
 checksums()

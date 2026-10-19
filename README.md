@@ -17,16 +17,18 @@ linux # cp zoom-repo-example.list /etc/apt/sources.list.d/zoom.list
 linux # apt update && apt install zoom
 ```
 
-All known versions stay available, e.g. `apt install zoom=6.3.0.5527`.
+The repository started with the 10 newest signed versions from `versions.txt`; every new Zoom release is added
+and old ones stay available, e.g. `apt install zoom=6.3.0.5527`.
 
 ## How the hosted repository is built
 
-* `versions.txt` lists all Zoom versions, `stanzas/<version>.control` holds the `Packages` entry of each one.
+* `versions.txt` lists all known Zoom versions. Only versions with a `stanzas/<version>.control` file
+  (their `Packages` entry) are published.
   `scripts/make-stanza.sh <version>` downloads the .deb to a temporary directory, verifies Zoom's signature
   (keys in `keys/zoom/`) and writes the stanza with `Filename: prod/<version>/zoom_amd64.deb`.
 * `scripts/build-index.sh` builds `dists/stable/...`, signs `Release` and writes `mirrors.txt`.
 * `.github/workflows/update.yml` runs daily: it adds the latest Zoom version (if new) and publishes the indices.
-* `.github/workflows/backfill.yml` (manual) builds missing stanzas for everything in `versions.txt`.
+* To publish an older version, run `scripts/make-stanza.sh <version>` and commit the new stanza.
 
 Setting up a fork: enable GitHub Pages with source "GitHub Actions" and store an armored, passphrase-less
 signing key as secret `REPO_GPG_PRIVATE_KEY`
