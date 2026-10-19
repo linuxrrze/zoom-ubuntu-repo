@@ -51,6 +51,14 @@ linux # cp zoom-update.cron /usr/local/bin/zoom-update.cron
 linux # echo '0 * * * * nobody /usr/local/bin/zoom-update.cron' > /etc/cron.d/zoom-update
 ```
 
+Each download is checked against Zoom's signature (key from `https://zoom.us/linux/download/pubkey`), including
+the package contents, before it is added. If Zoom changes its key, the script stops until you review the new key.
+The repository is a flat one (`Packages`, `Packages.gz`, unsigned `Release`), see the commented line in
+`zoom-repo-example.list`.
+
+To add a single version manually from a checkout of this repository, run `./fetch.sh [<version>]`
+in the repository directory (it uses the keys in `keys/zoom/`).
+
 # Background
 
 Parsing the Zoom homepage got harder and harder, but here's what I got as a workaround from Zoom:

@@ -111,21 +111,67 @@ function download_latest_zoom()
   else
     echo "Found new version (${LATEST_ZOOM_VER})."
     echo -n "Downloading... "
-    wget --quiet -O "${TARGET_FILE}" "${ZOOM_CLIENT_URL}"
+    # Download exactly the version found above, "latest" might have moved on meanwhile
+    wget --quiet -O "${ZOOM_CACHE}/download.deb" "https://cdn.zoom.us/prod/${LATEST_ZOOM_VER}/zoom_amd64.deb"
     echo "DONE"
-    gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --verify "${TARGET_FILE}" || exit 2
+    if ! verify_deb "${ZOOM_CACHE}/download.deb"; then
+      rm -f "${ZOOM_CACHE}/download.deb"
+      exit 2
+    fi
+    mv "${ZOOM_CACHE}/download.deb" "${TARGET_FILE}"
   fi
+}
+
+# Same check as scripts/verify-deb.sh in the repository (kept here so this
+# script can be installed standalone): the .deb carries a dpkg-sig manifest
+# (_gpgbuilder), a signed list of MD5/SHA1 hashes of the other archive
+# members. Check the signature, then the members against the list.
+function verify_deb()
+{
+  local deb="$1" tmp member md5 sha1 size members
+  tmp=$(mktemp -d)
+  if ! ar p "$deb" _gpgbuilder > "$tmp/manifest.asc" 2>/dev/null || \
+     ! gpg --quiet --homedir "${ZOOM_GPG_HOME}" --trust-model always --status-fd 3 \
+          --output "$tmp/manifest" --decrypt "$tmp/manifest.asc" 3> "$tmp/status" 2>/dev/null || \
+     ! grep -q '^\[GNUPG:\] VALIDSIG ' "$tmp/status"; then
+    echo "ERROR: signature check failed for $deb"
+    rm -rf "$tmp"
+    return 1
+  fi
+  members=$(ar t "$deb" | grep -vx _gpgbuilder)
+  for member in $members; do
+    md5=$(ar p "$deb" "$member" | md5sum | cut -d' ' -f1)
+    sha1=$(ar p "$deb" "$member" | sha1sum | cut -d' ' -f1)
+    size=$(ar p "$deb" "$member" | wc -c)
+    if ! grep -qE "^[[:space:]]+${md5} ${sha1} ${size} ${member}\$" "$tmp/manifest"; then
+      echo "ERROR: ${member} doesn't match the signed manifest in $deb"
+      rm -rf "$tmp"
+      return 1
+    fi
+  done
+  if [ "$(grep -cE '^[[:space:]]+[0-9a-f]{32} [0-9a-f]{40} ' "$tmp/manifest")" != "$(echo "$members" | wc -l)" ]; then
+    echo "ERROR: archive members don't match the signed manifest in $deb"
+    rm -rf "$tmp"
+    return 1
+  fi
+  rm -rf "$tmp"
 }
 
 function build_repo()
 {
   echo "Updating repo... "
-  if [ -f "${ZOOM_CACHE}/override" ]; then
-    dpkg-scanpackages --multiversion ${ZOOM_REPO}/ ${ZOOM_CACHE}/override > ${ZOOM_REPO}/Release
-  else
-    dpkg-scanpackages --multiversion ${ZOOM_REPO} > ${ZOOM_REPO}/Release
-  fi
-  gzip -9c ${ZOOM_REPO}/Release > ${ZOOM_REPO}/Packages.gz
+  local override="" f
+  [ -f "${ZOOM_CACHE}/override" ] && override="${ZOOM_CACHE}/override"
+  # Scan from inside the repo so Filename: paths are relative to it
+  (cd "${ZOOM_REPO}" && dpkg-scanpackages --multiversion . ${override}) > "${ZOOM_REPO}/Packages"
+  gzip -9nc "${ZOOM_REPO}/Packages" > "${ZOOM_REPO}/Packages.gz"
+  {
+    echo "Date: $(date -Ru)"
+    echo "SHA256:"
+    for f in Packages Packages.gz; do
+      echo " $(sha256sum "${ZOOM_REPO}/$f" | cut -d' ' -f1) $(stat -c%s "${ZOOM_REPO}/$f") $f"
+    done
+  } > "${ZOOM_REPO}/Release"
   chmod 644 "${ZOOM_REPO}"/*
   echo "DONE"
 }
