@@ -30,20 +30,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Add latest Zoom version
+      - name: Add new Zoom versions
         run: |
-          version=$(scripts/latest-version.sh)
-          echo "Latest zoom version is $version"
-          if [ -f "stanzas/${version}.control" ]; then
-            echo "Already in repository"
+          # On failure still publish what could be added, the last step fails the run
+          scripts/add-new-versions.sh || echo "LATEST_FAILED=1" >> "$GITHUB_ENV"
+          git add versions.txt stanzas/
+          if git diff --cached --quiet; then
+            echo "Nothing new"
             exit 0
           fi
-          grep -qx "$version" versions.txt || echo "$version" >> versions.txt
-          scripts/make-stanza.sh "$version"
+          added=$(git diff --cached --name-only --diff-filter=A -- stanzas/ | sed -e 's|stanzas/||' -e 's|\.control$||' | sort -V | paste -sd ' ')
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add versions.txt stanzas/
-          git commit -m "Add zoom $version"
+          git commit -m "Add zoom ${added:-versions}"
           git push
 
       - name: Import repository signing key
@@ -69,3 +68,9 @@ jobs:
 
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      - name: Fail if Zoom's latest version couldn't be added
+        if: env.LATEST_FAILED == '1'
+        run: |
+          echo "::error::Zoom's latest version couldn't be added, see the 'Add new Zoom versions' step"
+          exit 1
