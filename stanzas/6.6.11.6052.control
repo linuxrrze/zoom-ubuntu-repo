@@ -1,0 +1,23 @@
+Package: zoom
+Version: 6.6.11.6052
+Architecture: amd64
+Maintainer: Zoom Communications, Inc. <https://support.zoom.com/hc>
+Installed-Size: 823491
+Depends: libglib2.0-0, libxcb-keysyms1, libdbus-1-3, libxcb-shape0, libxcb-randr0, libpulse0, libxcb-xinerama0, libxcb-shm0, libxcb-xfixes0, libxcb-image0, libfontconfig1, libxi6, libsm6, libxrender1, libxcomposite1, libxslt1.1, libsqlite3-0, libxcb-xtest0, libxtst6, ibus, libxkbcommon-x11-0, desktop-file-utils, libgbm1, libdrm2, libxcb-cursor0, libxcb-icccm4, libatomic1, libfreetype6 (>= 2.6), libgbm1 (>= 17.1.0~rc2)
+Recommends: libegl1-mesa, libgl1-mesa-glx
+Filename: prod/6.6.11.6052/zoom_amd64.deb
+Size: 233249750
+MD5sum: 3a244c56bfd46be235425cec91d42d39
+SHA1: e11832c54d2ebe9f887ac48d5b45bac536e49e61
+SHA256: 162e32f05cb5b2a0bca6c21b71db6c9c9587caa80872969fd6c062bc6fd11fe8
+Section: default
+Priority: optional
+Homepage: https://www.zoom.us
+Description: Zoom Workplace
+ The Zoom Workplace app brings together team chat, phone, whiteboard, meetings, contacts, and over 1,500 native integrations and apps to make connections that matter.
+ .
+ To stay up to date on the latest feature enhancements subscribe to our blog at Zoom Blog and follow us on social @zoom.
+ .
+ By installing this app, you agree to our Terms of Service (https://explore.zoom.us/terms) and Privacy Statement (https://explore.zoom.us/privacy).
+License: see https://www.zoom.us/
+Vendor: Zoom Communications, Inc.

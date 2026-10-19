@@ -1,0 +1,21 @@
+Package: zoom
+Version: 6.7.5.6891
+Architecture: amd64
+Maintainer: Zoom Communications, Inc. <https://support.zoom.com/hc>
+Installed-Size: 962363
+Depends: libglib2.0-0, libxcb-keysyms1, libdbus-1-3, libxcb-shape0, libxcb-randr0, libpulse0, libxcb-xinerama0, libxcb-shm0, libxcb-xfixes0, libxcb-image0, libfontconfig1, libxi6, libsm6, libxrender1, libxcomposite1, libxslt1.1, libsqlite3-0, libxcb-xtest0, libxtst6, ibus, libxkbcommon-x11-0, desktop-file-utils, libgbm1, libdrm2, libxcb-cursor0, libxcb-icccm4, libatomic1, libfreetype6 (>= 2.6), libgbm1 (>= 17.1.0~rc2)
+Recommends: libegl1-mesa, libgl1-mesa-glx
+Filename: prod/6.7.5.6891/zoom_amd64.deb
+Size: 286913742
+MD5sum: 2f9b5f6ef9345f9062b478c1b7a8a93a
+SHA1: 5faf780cc2e3dc9e3e0d0df03ba30f0f331312bd
+SHA256: 2f252787b9e668af98ebd7c11000b12c8bd234123f73c92535047e3d212b2c3b
+Section: default
+Priority: optional
+Homepage: https://www.zoom.us
+Description: Zoom Workplace
+ Reimagine teamwork with Zoom Workplace, an AI-first, open collaboration platform that combines team chat, meetings, phone*, whiteboard, calendar, mail, docs, and more. Use Zoom Workplace for Linux with any free or paid Zoom license.
+ .
+ And with your Pro or Business Zoom license you have access to AI Companion woven throughout Zoom Workplace. You can get caught up quickly with a summary and key points from your unread messages, draft new content, and keep conversations focused and impactful. It's your personal assistant across Zoom Workplace, available at no additional cost with your paid Zoom license, available wherever you are from your device.
+License: see https://www.zoom.us/
+Vendor: Zoom Communications, Inc.
