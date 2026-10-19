@@ -27,9 +27,13 @@ and old ones stay available, e.g. `apt install zoom=7.0.5.3034`.
   `scripts/make-stanza.sh <version>` downloads the .deb to a temporary directory, verifies Zoom's signature and the package contents against it
   (keys in `keys/zoom/`) and writes the stanza with `Filename: prod/<version>/zoom_amd64.deb`.
 * `scripts/build-index.sh` builds `dists/stable/...`, signs `Release` and writes `mirrors.txt`.
-* `.github/workflows/update.yml` runs daily: `scripts/add-new-versions.sh` adds Zoom's latest version and any
-  newer releases found via Flathub/AUR, then the indices are published. The run fails if Zoom's latest version
-  can't be verified (e.g. after a signing key change: add the new key to `keys/zoom/`).
+* `.github/workflows/update.yml` runs daily: `scripts/add-new-versions.sh` adds Zoom's latest version and all
+  releases found via Flathub/AUR that are newer than the oldest published version, then the indices are published.
+  A version is only recorded in `versions.txt` once it passed verification, so failures are retried every day.
+  The run fails if Zoom's latest version can't be verified (e.g. after a signing key change: add the new key to
+  `keys/zoom/`) or zoom.us is unreachable; other failures show up as warnings. Versions that can never be verified
+  belong in `versions-skipped.txt`. After 50 days without a new version the workflow pushes an empty keepalive
+  commit, because GitHub disables scheduled workflows after 60 days without repository activity.
 * To publish an older version, run `scripts/make-stanza.sh <version>` and commit the new stanza.
 * Zoom only reveals its latest version. `scripts/known-versions.sh --missing` lists releases that are
   missing from `versions.txt`, based on the package history of Flathub and the AUR.
@@ -37,7 +41,6 @@ and old ones stay available, e.g. `apt install zoom=7.0.5.3034`.
 Setting up a fork: enable GitHub Pages with source "GitHub Actions" and store an armored, passphrase-less
 signing key as secret `REPO_GPG_PRIVATE_KEY`
 (`gpg --quick-gen-key "zoom-ubuntu-repo" ed25519 sign never`, then `gpg --armor --export-secret-keys <id>`).
-Note that GitHub disables scheduled workflows after 60 days without repository activity.
 
 # Self-hosted usage
 

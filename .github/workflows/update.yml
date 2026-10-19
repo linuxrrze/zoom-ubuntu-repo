@@ -1,8 +1,8 @@
 name: Update repository
 
-# Adds the latest Zoom version (if new), then rebuilds, signs and publishes
-# the APT indices to GitHub Pages. The .deb files themselves stay on
-# cdn.zoom.us; clients are sent there by mirrors.txt.
+# Adds new Zoom versions (Zoom's latest plus releases found via Flathub/AUR),
+# then rebuilds, signs and publishes the APT indices to GitHub Pages. The .deb
+# files themselves stay on cdn.zoom.us; clients are sent there by mirrors.txt.
 
 on:
   schedule:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
   push:
     branches: [master]
-    paths: ['versions.txt', 'stanzas/**', 'scripts/**', '.github/workflows/update.yml']
+    paths: ['versions.txt', 'versions-skipped.txt', 'stanzas/**', 'scripts/**', '.github/workflows/update.yml']
 
 permissions:
   contents: write
@@ -28,22 +28,30 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - name: Add new Zoom versions
+      - id: add
+        name: Add new Zoom versions
         run: |
           # On failure still publish what could be added, the last step fails the run
-          scripts/add-new-versions.sh || echo "LATEST_FAILED=1" >> "$GITHUB_ENV"
-          git add versions.txt stanzas/
-          if git diff --cached --quiet; then
-            echo "Nothing new"
-            exit 0
-          fi
-          added=$(git diff --cached --name-only --diff-filter=A -- stanzas/ | sed -e 's|stanzas/||' -e 's|\.control$||' | sort -V | paste -sd ' ')
+          result=0
+          touch "$RUNNER_TEMP/added"
+          ADDED_FILE="$RUNNER_TEMP/added" scripts/add-new-versions.sh || result=$?
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m "Add zoom ${added:-versions}"
-          git push
+          git add versions.txt stanzas/
+          if ! git diff --cached --quiet; then
+            git commit -m "Add zoom $(sort -V "$RUNNER_TEMP/added" | paste -sd ' ')"
+            git push
+          elif [ "$(git log -1 --format=%ct)" -lt "$(date -d '50 days ago' +%s)" ]; then
+            # GitHub disables scheduled workflows after 60 days without repository activity
+            git commit --allow-empty -m "Keepalive: no new Zoom version for 50 days"
+            git push
+          else
+            echo "Nothing new"
+          fi
 
       - name: Import repository signing key
         env:
@@ -57,20 +65,24 @@ jobs:
           echo "KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')" >> "$GITHUB_ENV"
 
       - id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Build indices
         run: scripts/build-index.sh public "${{ steps.pages.outputs.base_url }}/" "$KEY_ID"
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: public
 
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
-      - name: Fail if Zoom's latest version couldn't be added
-        if: env.LATEST_FAILED == '1'
+      - name: Report problems with Zoom's latest version
+        if: steps.add.outputs.result != '0'
         run: |
-          echo "::error::Zoom's latest version couldn't be added, see the 'Add new Zoom versions' step"
+          case "${{ steps.add.outputs.result }}" in
+            1) echo "::error::Zoom's latest version couldn't be verified or downloaded, see the 'Add new Zoom versions' step" ;;
+            2) echo "::error::Zoom's latest version couldn't be determined (zoom.us unreachable?)" ;;
+            *) echo "::error::Adding new Zoom versions failed, see the 'Add new Zoom versions' step" ;;
+          esac
           exit 1

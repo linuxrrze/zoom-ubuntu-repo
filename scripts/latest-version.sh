@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-location=$(curl -sfI https://zoom.us/client/latest/zoom_amd64.deb | grep -i '^location:' | tr -d '\r')
+location=$(curl -sfI https://zoom.us/client/latest/zoom_amd64.deb | grep -i '^location:' | tr -d '\r' || true)
 version=$(echo "$location" | sed -n -e 's|.*/prod/\([^/]*\)/.*|\1|p')
 
 if [ -z "$version" ]; then
