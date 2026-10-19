@@ -44,6 +44,10 @@ sudo apt update
 
 # How it works
 
+![Where the files live in both setups](docs/zoom-repo-setups.png)
+
+(`docs/zoom-repo-setups.drawio` is the editable source; the PNG also opens as editable diagram in draw.io.)
+
 * The `deb` line points apt to `mirrors.txt`, a list for apt's `mirror+` method: index files are fetched from
   GitHub Pages (`type:index`), .deb files from `https://cdn.zoom.us/` (`type:deb`).
 * The index (`dists/stable/...`) is signed with the repository key and lists the SHA256 of every package, so apt
